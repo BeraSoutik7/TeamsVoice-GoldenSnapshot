@@ -216,9 +216,13 @@ foreach ($aa in $AAs) {
         foreach ($opt in $menuOptions) {
             $tQueue = $null
             $tName  = "External/DirectTarget"
-            $tId    = if ($opt.CallTarget) { $opt.CallTarget.Identity.ToString() } else { "None" }
+            $tId    = "None"
 
-            if ($opt.CallTarget -and $opt.CallTarget.Type -eq "Queue" -and $CQMap.ContainsKey($tId)) {
+            if ($opt.CallTarget -and $opt.CallTarget.Identity) {
+                $tId = [string]$opt.CallTarget.Identity
+            }
+
+            if ($opt.CallTarget -and $opt.CallTarget.Type -eq "Queue" -and $tId -ne "None" -and $CQMap.ContainsKey($tId)) {
                 $tQueue = $CQMap[$tId]
                 $tName  = $tQueue.Name
             }
@@ -226,9 +230,13 @@ foreach ($aa in $AAs) {
             Add-GoldenRecord -Key $opt.Key -Action $opt.Action -TargetName $tName -TargetId $tId -TargetQueue $tQueue
         }
     } else {
-        $directId = if ($aa.DefaultCallFlow.TransferTarget) { $aa.DefaultCallFlow.TransferTarget.Identity.ToString() } else { "None" }
-        $tQueue   = if ($CQMap.ContainsKey($directId)) { $CQMap[$directId] } else { $null }
-        $tName    = if ($tQueue) { $tQueue.Name } else { "DirectCallFlow" }
+        $directId = "None"
+        if ($aa.DefaultCallFlow -and $aa.DefaultCallFlow.TransferTarget -and $aa.DefaultCallFlow.TransferTarget.Identity) {
+            $directId = [string]$aa.DefaultCallFlow.TransferTarget.Identity
+        }
+
+        $tQueue = if ($directId -ne "None" -and $CQMap.ContainsKey($directId)) { $CQMap[$directId] } else { $null }
+        $tName  = if ($tQueue) { $tQueue.Name } else { "DirectCallFlow" }
 
         Add-GoldenRecord -Key "DirectRoute" -Action "TransferCallToTarget" -TargetName $tName -TargetId $directId -TargetQueue $tQueue
     }
